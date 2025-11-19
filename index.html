@@ -6,18 +6,18 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Bila Coffee • Dashboard Kasir & Checkout</title>
+    <title>Bill Coffee • Dashboard Kasir & Checkout</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <!-- jsPDF dan html2canvas dari CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Toast CSS CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
       :root {
+        /* Light Mode Colors (Default) */
         color-scheme: light;
         --bg: #f7efe5;
         --surface: #ffffff;
@@ -33,6 +33,21 @@
         --radius-md: 18px;
         font-family: "DM Sans", "Segoe UI", system-ui, sans-serif;
         scroll-behavior: smooth;
+      }
+
+      [data-theme="dark"] {
+        /* Dark Mode Colors */
+        color-scheme: dark;
+        --bg: #1a1410;
+        --surface: #2a1f18;
+        --surface-muted: #322318;
+        --brand: #d4956f;
+        --brand-dark: #b87446;
+        --brand-light: #8c5731;
+        --text: #f7efe5;
+        --muted: #c4b5a8;
+        --border: rgba(212, 149, 111, 0.25);
+        --shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
       }
 
       * {
@@ -51,12 +66,18 @@
       }
 
       header.site-header {
+        transition: background 300ms ease, border-color 300ms ease;
         position: sticky;
         top: 0;
         z-index: 20;
         background: rgba(247, 239, 229, 0.92);
         backdrop-filter: blur(12px);
         border-bottom: 1px solid rgba(92, 70, 54, 0.16);
+      }
+
+      [data-theme="dark"] header.site-header {
+        background: rgba(26, 20, 16, 0.92);
+        border-bottom: 1px solid rgba(212, 149, 111, 0.25);
       }
 
       .nav-inner {
@@ -775,18 +796,34 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .total-row:last-child {
+        margin-bottom: 0;
+        padding-top: 10px;
+        border-top: 2px dashed rgba(184, 116, 70, 0.3);
       }
 
       .total-label {
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--text);
+      }
+
+      .total-label.grand {
         font-weight: 700;
         font-size: 18px;
-        color: var(--text);
       }
 
       .total-value {
         font-weight: 700;
-        font-size: 24px;
+        font-size: 16px;
         color: var(--brand);
+      }
+
+      .total-value.grand {
+        font-size: 24px;
       }
 
       .action-buttons {
@@ -858,14 +895,100 @@
         text-decoration: underline;
       }
 
-      /* Hidden Receipt for PDF */
-      .receipt-pdf-hidden {
+      /* Receipt Styles for Print */
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #receipt-print-area,
+        #receipt-print-area * {
+          visibility: visible;
+        }
+        #receipt-print-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+        }
+      }
+
+      .receipt-print-container {
+        display: none;
+      }
+
+      .receipt-print-container.active {
+        display: block;
         position: fixed;
-        left: -9999px;
         top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        overflow-y: auto;
+        padding: 40px 20px;
+      }
+
+      .receipt-print-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
         background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .receipt-print-actions {
+        background: var(--brand);
+        padding: 16px 24px;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .receipt-print-actions h3 {
+        margin: 0;
+        color: white;
+        font-size: 16px;
+      }
+
+      .receipt-print-buttons {
+        display: flex;
+        gap: 12px;
+      }
+
+      .receipt-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 200ms ease;
+        font-family: inherit;
+      }
+
+      .receipt-btn-print {
+        background: white;
+        color: var(--brand);
+      }
+
+      .receipt-btn-print:hover {
+        background: #f0f0f0;
+      }
+
+      .receipt-btn-close {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+
+      .receipt-btn-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      #receipt-print-area {
         padding: 40px;
-        width: 800px;
+        background: white;
       }
 
       .receipt-header {
@@ -985,14 +1108,19 @@
       }
 
       .receipt-table tfoot td {
-        padding: 16px 8px;
+        padding: 12px 8px;
         font-weight: 700;
-        font-size: 16px;
+        font-size: 14px;
+      }
+
+      .receipt-table tfoot tr:last-child td {
+        font-size: 18px;
+        color: var(--brand);
+        padding-top: 16px;
       }
 
       .receipt-table tfoot td:last-child {
-        font-size: 20px;
-        color: var(--brand);
+        text-align: right;
       }
 
       .receipt-footer {
@@ -1033,20 +1161,129 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* Search & Filter Controls */
+      .search-filter-container {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(203, 170, 143, 0.3);
+      }
+
+      [data-theme="dark"] .search-filter-container {
+        background: var(--surface);
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px 16px 12px 44px;
+        border: 2px solid rgba(184, 116, 70, 0.3);
+        border-radius: 12px;
+        font-size: 14px;
+        font-family: inherit;
+        background: white;
+        color: var(--text);
+        transition: all 200ms ease;
+      }
+
+      [data-theme="dark"] .search-input {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(212, 149, 111, 0.4);
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--brand);
+        box-shadow: 0 0 0 4px rgba(184, 116, 70, 0.15);
+      }
+
+      .search-wrapper {
+        position: relative;
+        margin-bottom: 16px;
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+      }
+
+      .filter-select {
+        padding: 10px 12px;
+        border: 2px solid rgba(184, 116, 70, 0.3);
+        border-radius: 12px;
+        font-size: 13px;
+        font-family: inherit;
+        background: white;
+        color: var(--text);
+        cursor: pointer;
+        transition: all 200ms ease;
+      }
+
+      [data-theme="dark"] .filter-select {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(212, 149, 111, 0.4);
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: var(--brand);
+        box-shadow: 0 0 0 4px rgba(184, 116, 70, 0.15);
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      /* Toast Notification Overrides */
+      .toastify {
+        font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+        border-radius: 12px;
+        padding: 16px 24px;
+        font-size: 14px;
+      }
+
+      .toast-success {
+        background: linear-gradient(135deg, #7ec895, #5fa876);
+      }
+
+      .toast-error {
+        background: linear-gradient(135deg, #e07c7c, #c25a5a);
+      }
+
+      .toast-info {
+        background: linear-gradient(135deg, #72a4ff, #5689e0);
+      }
     </style>
   </head>
   <body>
     <header class="site-header">
       <div class="nav-inner">
-        <span class="brand">Bila Coffee</span>
+        <span class="brand">Bill Coffee</span>
         <nav>
           <a href="#beranda">Beranda</a>
           <a href="#menu">Menu</a>
-          <a href="#produk">Produk</a>
           <a href="#info">Info</a>
           <a href="#reservasi">Reservasi</a>
           <a href="#dashboard">Dashboard</a>
           <a href="#order">Pemesanan</a>
+          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+            🌙
+          </button>
         </nav>
       </div>
     </header>
@@ -1055,7 +1292,7 @@
       <section id="beranda" class="hero">
         <div class="hero-content">
           <span class="tagline">kopi & cerita</span>
-          <h1>Bila menyapa di setiap cangkir</h1>
+          <h1>Dari Seduhan, Datang Kenyamanan</h1>
           <p>
             Rasakan racikan kopi nusantara yang diseduh langsung oleh barista kami. Anda bisa
             memesan otomatis, ambil sendiri, atau nikmati di meja favorit.
@@ -1070,9 +1307,9 @@
       </section>
 
       <section id="about" class="section" style="padding-top: 96px; padding-bottom: 96px;">
-        <h2>Tentang Bila</h2>
+        <h2>Tentang Bill Coffee</h2>
         <p class="section-intro">
-          Bila Coffee meracik kopi dengan pendekatan slow bar yang mengutamakan kualitas biji
+          Bill Coffee meracik kopi dengan pendekatan slow bar yang mengutamakan kualitas biji
           nusantara, servis ramah, dan suasana homey agar setiap kunjungan terasa seperti pulang.
         </p>
       </section>
@@ -1230,7 +1467,10 @@
                   <tr>
                     <th>#</th>
                     <th>Pelanggan</th>
+                    <th>No. Meja</th>
                     <th>Menu</th>
+                    <th>Subtotal</th>
+                    <th>PPN 11%</th>
                     <th>Total</th>
                     <th>Tanggal</th>
                     <th>Status</th>
@@ -1239,7 +1479,7 @@
                 </thead>
                 <tbody id="orders-body">
                   <tr>
-                    <td colspan="7" style="text-align: center; padding: 32px; color: rgba(96, 59, 32, 0.6);">
+                    <td colspan="10" style="text-align: center; padding: 32px; color: rgba(96, 59, 32, 0.6);">
                       Belum ada pesanan masuk hari ini.
                     </td>
                   </tr>
@@ -1250,25 +1490,56 @@
         </div>
       </section>
 
-      <!-- NEW: Section Order dengan Layout Kolom Per Kategori -->
       <section id="order" class="order-section-new">
         <div class="order-container">
           <div class="order-header">
             <h2>Sistem Pemesanan & Cetak Struk</h2>
-            <p>Pilih menu favorit, atur pesanan, dan cetak struk dalam format PDF</p>
+            <p>Pilih menu favorit, atur pesanan, dan cetak struk dalam format HTML</p>
           </div>
 
           <div class="order-grid">
-            <!-- Menu Columns -->
             <div class="menu-columns-container">
+              <!-- Search & Filter Controls -->
+              <div class="search-filter-container">
+                <div class="search-wrapper">
+                  <span class="search-icon">🔍</span>
+                  <input
+                    type="text"
+                    id="menu-search"
+                    class="search-input"
+                    placeholder="Cari menu (contoh: kopi, matcha, roti...)"
+                  />
+                </div>
+                <div class="filter-row">
+                  <select id="category-filter" class="filter-select">
+                    <option value="all">Semua Kategori</option>
+                    <option value="kopi">Kopi</option>
+                    <option value="non-kopi">Non-Kopi</option>
+                    <option value="snack">Snack</option>
+                    <option value="signature">Signature</option>
+                  </select>
+                  <select id="price-filter" class="filter-select">
+                    <option value="all">Semua Harga</option>
+                    <option value="0-25000">< Rp25.000</option>
+                    <option value="25000-35000">Rp25.000 - Rp35.000</option>
+                    <option value="35000-50000">> Rp35.000</option>
+                  </select>
+                  <select id="sort-filter" class="filter-select">
+                    <option value="default">Urutkan Default</option>
+                    <option value="price-asc">Termurah - Termahal</option>
+                    <option value="price-desc">Termahal - Termurah</option>
+                    <option value="name-asc">Nama A-Z</option>
+                    <option value="name-desc">Nama Z-A</option>
+                  </select>
+                </div>
+              </div>
+
               <h3 class="menu-columns-title">Daftar Menu Per Kategori</h3>
               <div class="menu-columns-grid" id="menu-columns-grid"></div>
             </div>
 
-            <!-- Order Summary -->
             <div class="order-summary-panel">
               <h3 class="order-summary-title">Pesanan Aktif</h3>
-              
               <div class="cart-items" id="cart-items">
                 <div class="cart-empty">
                   Belum ada pesanan. Pilih menu di sebelah kiri untuk memulai.
@@ -1287,6 +1558,16 @@
                 </div>
 
                 <div class="form-group">
+                  <label class="form-label" for="table-number">Nomor Meja</label>
+                  <input
+                    type="text"
+                    id="table-number"
+                    class="form-input"
+                    placeholder="Contoh: 5 atau A-12"
+                  />
+                </div>
+
+                <div class="form-group">
                   <label class="form-label" for="order-notes">Catatan untuk Barista</label>
                   <textarea
                     id="order-notes"
@@ -1298,14 +1579,22 @@
 
               <div class="order-total">
                 <div class="total-row">
-                  <span class="total-label">Total</span>
-                  <span class="total-value" id="total-value">Rp0</span>
+                  <span class="total-label">Subtotal</span>
+                  <span class="total-value" id="subtotal-value">Rp0</span>
+                </div>
+                <div class="total-row">
+                  <span class="total-label">PPN 11%</span>
+                  <span class="total-value" id="tax-value">Rp0</span>
+                </div>
+                <div class="total-row">
+                  <span class="total-label grand">Total Bayar</span>
+                  <span class="total-value grand" id="total-value">Rp0</span>
                 </div>
               </div>
 
               <div class="action-buttons">
-                <button type="button" class="btn btn-primary" id="btn-print-pdf" disabled>
-                  📄 Cetak Struk PDF
+                <button type="button" class="btn btn-primary" id="btn-print-html" disabled>
+                  📄 Cetak Struk HTML
                 </button>
                 <button type="button" class="btn btn-secondary" id="btn-whatsapp" disabled>
                   📱 Kirim ke WhatsApp
@@ -1318,7 +1607,7 @@
     </main>
 
     <footer class="site-footer">
-      <p><strong>Bila Coffee</strong></p>
+      <p><strong>Bill Coffee</strong></p>
       <p>Jl. Matahari Tanjung Ngablak, Kediri</p>
       <p>
         Temukan kami di
@@ -1326,58 +1615,200 @@
         •
         <a href="https://www.tiktok.com" target="_blank" rel="noreferrer">TikTok</a>
       </p>
-      <p>&copy; <span id="year"></span> Bila Coffee House</p>
+      <p>&copy; <span id="year"></span> Bill Coffee House</p>
     </footer>
 
-    <!-- Hidden Receipt for PDF Generation -->
-    <div class="receipt-pdf-hidden" id="receipt-pdf">
-      <div class="receipt-header">
-        <h1>BILA COFFEE</h1>
-        <p>Jl. Matahari Tanjung Ngablak, Kediri</p>
-        <p>+62 895-7028-92800</p>
-      </div>
-
-      <div class="receipt-info">
-        <div>
-          <p class="receipt-info-label">Nama Pelanggan</p>
-          <p class="receipt-info-value" id="receipt-customer-name">-</p>
+    <!-- Receipt Modal Structure -->
+    <div id="receipt-container" class="receipt-print-container">
+      <div class="receipt-print-wrapper">
+        <div class="receipt-print-actions">
+          <h3>Cetak Struk</h3>
+          <div class="receipt-print-buttons">
+            <button class="receipt-btn receipt-btn-print" onclick="printReceipt()">🖨️ Print</button>
+            <button class="receipt-btn receipt-btn-close" onclick="closeReceipt()">Tutup</button>
+          </div>
         </div>
-        <div style="text-align: right;">
-          <p class="receipt-info-label">Tanggal</p>
-          <p class="receipt-info-value" id="receipt-date">-</p>
+        <div id="receipt-print-area">
+          <div class="receipt-header">
+            <h1>BILL COFFEE</h1>
+            <p>Jl. Matahari Tanjung Ngablak, Kediri</p>
+            <p>+62 895-7028-92800</p>
+          </div>
+          <div class="receipt-info">
+            <div>
+              <div class="receipt-info-label">Pelanggan</div>
+              <div class="receipt-info-value" id="receipt-customer-name"></div>
+            </div>
+            <div>
+              <div class="receipt-info-label">Meja</div>
+              <div class="receipt-info-value" id="receipt-table-number"></div>
+            </div>
+            <div>
+              <div class="receipt-info-label">Tanggal</div>
+              <div class="receipt-info-value" id="receipt-date"></div>
+            </div>
+            <div>
+              <div class="receipt-info-label">No. Transaksi</div>
+              <div class="receipt-info-value" id="receipt-transaction-id"></div>
+            </div>
+          </div>
+          <div id="receipt-notes-container" class="receipt-notes" style="display: none;">
+            <div class="receipt-notes-label">Catatan</div>
+            <div class="receipt-notes-text" id="receipt-notes-text"></div>
+          </div>
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th>Menu</th>
+                <th>Jml</th>
+                <th>Harga</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="receipt-items">
+              <!-- Items will be injected here -->
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3">Subtotal</td>
+                <td id="receipt-subtotal"></td>
+              </tr>
+              <tr>
+                <td colspan="3">PPN 11%</td>
+                <td id="receipt-tax"></td>
+              </tr>
+              <tr>
+                <td colspan="3">Total Bayar</td>
+                <td id="receipt-total"></td>
+              </tr>
+            </tfoot>
+          </table>
+          <div class="receipt-footer">
+            <p>Terima kasih atas kunjungan Anda!</p>
+            <p>Simpan struk ini sebagai bukti pembayaran.</p>
+          </div>
         </div>
-      </div>
-
-      <div class="receipt-notes" id="receipt-notes-container" style="display: none;">
-        <p class="receipt-notes-label">Catatan Pesanan</p>
-        <p class="receipt-notes-text" id="receipt-notes-text">-</p>
-      </div>
-
-      <table class="receipt-table">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Qty</th>
-            <th>Harga</th>
-            <th>Subtotal</th>
-          </tr>
-        </thead>
-        <tbody id="receipt-items"></tbody>
-        <tfoot>
-          <tr>
-            <td colspan="3" style="text-align: right;">TOTAL</td>
-            <td id="receipt-total">Rp0</td>
-          </tr>
-        </tfoot>
-      </table>
-
-      <div class="receipt-footer">
-        <p>Terima kasih atas kunjungan Anda!</p>
-        <p>Sampai jumpa lagi di Bila Coffee ☕</p>
       </div>
     </div>
 
+    <!-- Toast JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
     <script>
+      // ===== THEME TOGGLE (DARK MODE) =====
+      const themeToggle = document.getElementById('theme-toggle');
+      const htmlElement = document.documentElement;
+      
+      // Check saved theme preference or default to light
+      const currentTheme = localStorage.getItem('bill-coffee-theme') || 'light';
+      htmlElement.setAttribute('data-theme', currentTheme);
+      themeToggle.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+      
+      themeToggle.addEventListener('click', () => {
+        const newTheme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        htmlElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('bill-coffee-theme', newTheme);
+        themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        
+        showToast(`Mode ${newTheme === 'dark' ? 'Gelap' : 'Terang'} diaktifkan`, 'info');
+      });
+
+      // ===== TOAST NOTIFICATION SYSTEM =====
+      function showToast(message, type = 'success') {
+        const backgroundColor = {
+          success: 'linear-gradient(135deg, #7ec895, #5fa876)',
+          error: 'linear-gradient(135deg, #e07c7c, #c25a5a)',
+          info: 'linear-gradient(135deg, #72a4ff, #5689e0)'
+        }[type] || 'linear-gradient(135deg, #7ec895, #5fa876)';
+
+        Toastify({
+          text: message,
+          duration: 3000,
+          gravity: 'top',
+          position: 'right',
+          stopOnFocus: true,
+          style: {
+            background: backgroundColor,
+            borderRadius: '12px',
+            padding: '16px 24px',
+            fontSize: '14px',
+            fontFamily: 'DM Sans, sans-serif'
+          }
+        }).showToast();
+      }
+
+      // Web Audio API - Sound Effects System
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+
+      // SFX Generator Functions
+      function playPopSound() {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.1);
+      }
+
+      function playDingSound() {
+        const oscillator1 = audioCtx.createOscillator();
+        const oscillator2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator1.connect(gainNode);
+        oscillator2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator1.frequency.value = 1200;
+        oscillator2.frequency.value = 1600;
+        oscillator1.type = 'sine';
+        oscillator2.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        
+        oscillator1.start(audioCtx.currentTime);
+        oscillator2.start(audioCtx.currentTime + 0.05);
+        oscillator1.stop(audioCtx.currentTime + 0.4);
+        oscillator2.stop(audioCtx.currentTime + 0.45);
+      }
+
+      function playWhooshSound() {
+        const bufferSize = audioCtx.sampleRate * 0.3;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.1));
+        }
+        
+        const source = audioCtx.createBufferSource();
+        const filter = audioCtx.createBiquadFilter();
+        const gainNode = audioCtx.createGain();
+        
+        source.buffer = buffer;
+        filter.type = 'highpass';
+        filter.frequency.value = 1000;
+        
+        source.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        
+        source.start(audioCtx.currentTime);
+      }
+
       // Data produk
       const products = [
         {
@@ -1508,14 +1939,13 @@
         },
       ];
 
-      const STORAGE_ORDER_KEY = 'bila-coffee-orders';
+      const STORAGE_ORDER_KEY = 'bill-coffee-orders';
       const ADMIN_PHONE = '62895702892800';
+      const TAX_RATE = 0.11; // PPN 11%
 
-      // State
       let cart = [];
       let orders = loadOrdersFromStorage();
 
-      // Helper functions
       const rupiah = (value) =>
         new Intl.NumberFormat('id-ID', {
           style: 'currency',
@@ -1544,7 +1974,63 @@
         }
       }
 
-      // Render menu columns
+      // ===== SEARCH & FILTER SYSTEM =====
+      let filteredProducts = [...products];
+      const searchInput = document.getElementById('menu-search');
+      const categoryFilter = document.getElementById('category-filter');
+      const priceFilter = document.getElementById('price-filter');
+      const sortFilter = document.getElementById('sort-filter');
+
+      function applyFilters() {
+        let result = [...products];
+
+        // Search filter
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        if (searchTerm) {
+          result = result.filter(p => 
+            p.name.toLowerCase().includes(searchTerm) ||
+            p.description.toLowerCase().includes(searchTerm)
+          );
+        }
+
+        // Category filter
+        const selectedCategory = categoryFilter.value;
+        if (selectedCategory !== 'all') {
+          result = result.filter(p => p.category === selectedCategory);
+        }
+
+        // Price filter
+        const selectedPrice = priceFilter.value;
+        if (selectedPrice !== 'all') {
+          const [min, max] = selectedPrice.split('-').map(Number);
+          if (max) {
+            result = result.filter(p => p.price >= min && p.price <= max);
+          } else {
+            result = result.filter(p => p.price >= min);
+          }
+        }
+
+        // Sorting
+        const sortType = sortFilter.value;
+        if (sortType === 'price-asc') {
+          result.sort((a, b) => a.price - b.price);
+        } else if (sortType === 'price-desc') {
+          result.sort((a, b) => b.price - a.price);
+        } else if (sortType === 'name-asc') {
+          result.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortType === 'name-desc') {
+          result.sort((a, b) => b.name.localeCompare(a.name));
+        }
+
+        filteredProducts = result;
+        renderMenuColumns();
+      }
+
+      searchInput.addEventListener('input', applyFilters);
+      categoryFilter.addEventListener('change', applyFilters);
+      priceFilter.addEventListener('change', applyFilters);
+      sortFilter.addEventListener('change', applyFilters);
+
       function renderMenuColumns() {
         const categories = {
           kopi: { title: 'KOPI', items: [] },
@@ -1553,7 +2039,7 @@
           signature: { title: 'SIGNATURE', items: [] },
         };
 
-        products.forEach((product) => {
+        filteredProducts.forEach((product) => {
           if (categories[product.category]) {
             categories[product.category].items.push(product);
           }
@@ -1562,7 +2048,12 @@
         const grid = document.getElementById('menu-columns-grid');
         grid.innerHTML = '';
 
+        let hasResults = false;
+
         Object.entries(categories).forEach(([key, { title, items }]) => {
+          if (items.length === 0) return;
+          hasResults = true;
+
           const column = document.createElement('div');
           column.className = 'menu-column';
 
@@ -1601,9 +2092,12 @@
           column.appendChild(itemsContainer);
           grid.appendChild(column);
         });
+
+        if (!hasResults) {
+          grid.innerHTML = '<div class="no-results">❌ Tidak ada menu yang sesuai dengan filter Anda.</div>';
+        }
       }
 
-      // Cart functions
       function addToCart(product) {
         const existing = cart.find((item) => item.product.id === product.id);
         if (existing) {
@@ -1614,6 +2108,8 @@
             product,
             quantity: 1,
           });
+          playPopSound(); // SFX: Pop saat tambah item
+          showToast(`${product.name} ditambahkan ke pesanan`, 'success');
         }
         renderCart();
       }
@@ -1637,8 +2133,10 @@
 
       function renderCart() {
         const cartItemsEl = document.getElementById('cart-items');
+        const subtotalValueEl = document.getElementById('subtotal-value');
+        const taxValueEl = document.getElementById('tax-value');
         const totalValueEl = document.getElementById('total-value');
-        const btnPrintPdf = document.getElementById('btn-print-pdf');
+        const btnPrintHtml = document.getElementById('btn-print-html');
         const btnWhatsapp = document.getElementById('btn-whatsapp');
 
         if (cart.length === 0) {
@@ -1647,26 +2145,28 @@
               Belum ada pesanan. Pilih menu di sebelah kiri untuk memulai.
             </div>
           `;
+          subtotalValueEl.textContent = 'Rp0';
+          taxValueEl.textContent = 'Rp0';
           totalValueEl.textContent = 'Rp0';
-          btnPrintPdf.disabled = true;
+          btnPrintHtml.disabled = true;
           btnWhatsapp.disabled = true;
           return;
         }
 
         cartItemsEl.innerHTML = '';
 
-        let total = 0;
+        let subtotal = 0;
         cart.forEach((item) => {
           const cartItem = document.createElement('div');
           cartItem.className = 'cart-item';
 
-          const subtotal = item.product.price * item.quantity;
-          total += subtotal;
+          const itemSubtotal = item.product.price * item.quantity;
+          subtotal += itemSubtotal;
 
           cartItem.innerHTML = `
             <div class="cart-item-header">
               <div class="cart-item-name">${item.product.name}</div>
-              <div class="cart-item-price">${rupiah(subtotal)}</div>
+              <div class="cart-item-price">${rupiah(itemSubtotal)}</div>
             </div>
             <div class="cart-item-controls">
               <div class="quantity-control">
@@ -1698,128 +2198,171 @@
           cartItemsEl.appendChild(cartItem);
         });
 
+        const tax = Math.round(subtotal * TAX_RATE);
+        const total = subtotal + tax;
+
+        subtotalValueEl.textContent = rupiah(subtotal);
+        taxValueEl.textContent = rupiah(tax);
         totalValueEl.textContent = rupiah(total);
-        btnPrintPdf.disabled = false;
+        btnPrintHtml.disabled = false;
         btnWhatsapp.disabled = false;
       }
 
-      // Print PDF function
-      async function generatePDF() {
+      function generateQRCode(text) {
+        const canvas = document.getElementById('qris-canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 200;
+        const moduleCount = 25;
+        const moduleSize = size / moduleCount;
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#000000';
+
+        const hash = text.split('').reduce((acc, char) => {
+          return ((acc << 5) - acc) + char.charCodeAt(0);
+        }, 0);
+
+        for (let row = 0; row < moduleCount; row++) {
+          for (let col = 0; col < moduleCount; col++) {
+            const seedValue = (hash + row * moduleCount + col) % 2;
+            if (seedValue === 0) {
+              ctx.fillRect(col * moduleSize, row * moduleSize, moduleSize, moduleSize);
+            }
+          }
+        }
+
+        const cornerSize = moduleSize * 7;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, cornerSize, cornerSize);
+        ctx.fillRect(size - cornerSize, 0, cornerSize, cornerSize);
+        ctx.fillRect(0, size - cornerSize, cornerSize, cornerSize);
+
+        ctx.fillStyle = '#000000';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = moduleSize;
+
+        [
+          [0, 0],
+          [size - cornerSize, 0],
+          [0, size - cornerSize]
+        ].forEach(([x, y]) => {
+          ctx.strokeRect(x + moduleSize, y + moduleSize, cornerSize - 2 * moduleSize, cornerSize - 2 * moduleSize);
+          ctx.fillRect(x + 2 * moduleSize, y + 2 * moduleSize, 3 * moduleSize, 3 * moduleSize);
+        });
+      }
+
+      function generateHTMLReceipt() {
         const customerName = document.getElementById('customer-name').value.trim();
+        const tableNumber = document.getElementById('table-number').value.trim();
         const orderNotes = document.getElementById('order-notes').value.trim();
 
         if (!customerName) {
-          alert('Masukkan nama pelanggan sebelum mencetak PDF');
+          alert('Masukkan nama pelanggan sebelum mencetak struk');
+          return;
+        }
+
+        if (!tableNumber) {
+          alert('Masukkan nomor meja sebelum mencetak struk');
           return;
         }
 
         if (cart.length === 0) {
-          alert('Tambahkan menu ke pesanan sebelum mencetak PDF');
+          alert('Tambahkan menu ke pesanan sebelum mencetak struk');
           return;
         }
 
-        // Check if libraries are already loaded
-        if (typeof html2canvas === 'undefined' || typeof jsPDF === 'undefined') {
-          alert('Library PDF tidak berhasil dimuat. Pastikan koneksi internet stabil dan coba refresh halaman.');
-          return;
+        const transactionId = `TRX${Date.now().toString().slice(-8)}`;
+
+        document.getElementById('receipt-customer-name').textContent = customerName;
+        document.getElementById('receipt-table-number').textContent = tableNumber;
+        document.getElementById('receipt-date').textContent = new Date().toLocaleString('id-ID');
+        document.getElementById('receipt-transaction-id').textContent = transactionId;
+
+        if (orderNotes) {
+          document.getElementById('receipt-notes-container').style.display = 'block';
+          document.getElementById('receipt-notes-text').textContent = orderNotes;
+        } else {
+          document.getElementById('receipt-notes-container').style.display = 'none';
         }
 
-        const btnPrintPdf = document.getElementById('btn-print-pdf');
-        btnPrintPdf.textContent = '⏳ Membuat PDF...';
-        btnPrintPdf.disabled = true;
+        const receiptItemsEl = document.getElementById('receipt-items');
+        receiptItemsEl.innerHTML = '';
+        let subtotal = 0;
 
-        try {
-          // Update receipt content
-          document.getElementById('receipt-customer-name').textContent = customerName;
-          document.getElementById('receipt-date').textContent = new Date().toLocaleString('id-ID');
+        cart.forEach((item) => {
+          const itemSubtotal = item.product.price * item.quantity;
+          subtotal += itemSubtotal;
 
-          if (orderNotes) {
-            document.getElementById('receipt-notes-container').style.display = 'block';
-            document.getElementById('receipt-notes-text').textContent = orderNotes;
-          } else {
-            document.getElementById('receipt-notes-container').style.display = 'none';
-          }
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.product.name}</td>
+            <td>${item.quantity}</td>
+            <td>${rupiah(item.product.price)}</td>
+            <td>${rupiah(itemSubtotal)}</td>
+          `;
+          receiptItemsEl.appendChild(row);
+        });
 
-          const receiptItemsEl = document.getElementById('receipt-items');
-          receiptItemsEl.innerHTML = '';
-          let total = 0;
+        const tax = Math.round(subtotal * TAX_RATE);
+        const total = subtotal + tax;
 
-          cart.forEach((item) => {
-            const subtotal = item.product.price * item.quantity;
-            total += subtotal;
+        document.getElementById('receipt-subtotal').textContent = rupiah(subtotal);
+        document.getElementById('receipt-tax').textContent = rupiah(tax);
+        document.getElementById('receipt-total').textContent = rupiah(total);
 
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${item.product.name}</td>
-              <td>${item.quantity}</td>
-              <td>${rupiah(item.product.price)}</td>
-              <td>${rupiah(subtotal)}</td>
-            `;
-            receiptItemsEl.appendChild(row);
-          });
+        const order = {
+          id: `ord-${Date.now()}`,
+          transactionId: transactionId,
+          customerName,
+          tableNumber,
+          notes: orderNotes,
+          items: cart.map((item) => ({
+            quantity: item.quantity,
+            name: item.product.name,
+            price: item.product.price,
+          })),
+          subtotal,
+          tax,
+          total,
+          status: 'diproses',
+          createdAt: new Date().toISOString(),
+        };
 
-          document.getElementById('receipt-total').textContent = rupiah(total);
+        orders.unshift(order);
+        saveOrdersToStorage(orders);
+        renderOrdersTable();
+        renderDashboardMetrics();
 
-          // Generate PDF
-          const receiptElement = document.getElementById('receipt-pdf');
-          const canvas = await html2canvas(receiptElement, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            logging: false,
-          });
-
-          const imgData = canvas.toDataURL('image/png');
-          const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4',
-          });
-
-          const imgWidth = 210;
-          const pageHeight = 297;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-          let heightLeft = imgHeight;
-          let position = 0;
-
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-
-          while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-          }
-
-          pdf.save(`struk-${customerName}-${Date.now()}.pdf`);
-
-          btnPrintPdf.textContent = '✅ PDF Tersimpan!';
-          setTimeout(() => {
-            btnPrintPdf.textContent = '📄 Cetak Struk PDF';
-            btnPrintPdf.disabled = false;
-            
-            // Clear cart and form after PDF generation
-            cart = [];
-            renderCart();
-            document.getElementById('customer-name').value = '';
-            document.getElementById('order-notes').value = '';
-          }, 2000);
-        } catch (error) {
-          console.error('Error generating PDF:', error);
-          alert('Gagal membuat PDF. Silakan coba lagi.');
-          btnPrintPdf.textContent = '📄 Cetak Struk PDF';
-          btnPrintPdf.disabled = false;
-        }
+        playWhooshSound(); // SFX: Whoosh saat cetak struk
+        document.getElementById('receipt-container').classList.add('active');
       }
 
-      // WhatsApp function
+      function printReceipt() {
+        window.print();
+      }
+
+      function closeReceipt() {
+        document.getElementById('receipt-container').classList.remove('active');
+        cart = [];
+        renderCart();
+        document.getElementById('customer-name').value = '';
+        document.getElementById('table-number').value = '';
+        document.getElementById('order-notes').value = '';
+      }
+
       function sendToWhatsApp() {
         const customerName = document.getElementById('customer-name').value.trim();
+        const tableNumber = document.getElementById('table-number').value.trim();
         const orderNotes = document.getElementById('order-notes').value.trim();
 
         if (!customerName) {
           alert('Masukkan nama pelanggan');
+          return;
+        }
+
+        if (!tableNumber) {
+          alert('Masukkan nomor meja');
           return;
         }
 
@@ -1834,26 +2377,38 @@
               item.product.price * item.quantity
             )}`
         );
-        const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+        const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+        const tax = Math.round(subtotal * TAX_RATE);
+        const total = subtotal + tax;
+        const transactionId = `TRX${Date.now().toString().slice(-8)}`;
+
         const message = [
           `Halo, pesanan atas nama ${customerName}`,
+          `Meja: ${tableNumber}`,
+          `ID Transaksi: ${transactionId}`,
           '',
           ...items,
           '',
-          `Catatan: ${orderNotes || '-'}`,
+          `Subtotal: ${rupiah(subtotal)}`,
+          `PPN 11%: ${rupiah(tax)}`,
           `Total: ${rupiah(total)}`,
+          '',
+          `Catatan: ${orderNotes || '-'}`,
         ].join('\n');
 
-        // Save to orders
         const order = {
           id: `ord-${Date.now()}`,
+          transactionId: transactionId,
           customerName,
+          tableNumber,
           notes: orderNotes,
           items: cart.map((item) => ({
             quantity: item.quantity,
             name: item.product.name,
             price: item.product.price,
           })),
+          subtotal,
+          tax,
           total,
           status: 'diproses',
           createdAt: new Date().toISOString(),
@@ -1869,21 +2424,20 @@
           '_blank'
         );
 
-        // Clear cart
         cart = [];
         renderCart();
         document.getElementById('customer-name').value = '';
+        document.getElementById('table-number').value = '';
         document.getElementById('order-notes').value = '';
       }
 
-      // Dashboard functions
       function renderOrdersTable() {
         const ordersBodyEl = document.getElementById('orders-body');
 
         if (!orders.length) {
           ordersBodyEl.innerHTML = `
             <tr>
-              <td colspan="7" style="text-align: center; padding: 32px; color: rgba(96, 59, 32, 0.6);">
+              <td colspan="10" style="text-align: center; padding: 32px; color: rgba(96, 59, 32, 0.6);">
                 Belum ada pesanan masuk hari ini.
               </td>
             </tr>
@@ -1907,7 +2461,10 @@
                 <strong>${order.customerName}</strong><br />
                 <span style="color: rgba(96, 59, 32, 0.6); font-size: 12px;">${order.notes || 'Tanpa catatan'}</span>
               </td>
+              <td><strong>${order.tableNumber || '-'}</strong></td>
               <td style="font-size: 13px; color: rgba(96, 59, 32, 0.75);">${itemsText}</td>
+              <td><strong>${rupiah(order.subtotal || 0)}</strong></td>
+              <td><strong>${rupiah(order.tax || 0)}</strong></td>
               <td><strong>${rupiah(order.total)}</strong></td>
               <td>${new Date(order.createdAt).toLocaleString('id-ID', {
                 dateStyle: 'short',
@@ -1950,45 +2507,7 @@
         document.getElementById('metric-sales').textContent = rupiah(todaySales);
       }
 
-      // Check if PDF libraries are loaded
-      function checkPdfLibraries() {
-        const btnPrintPdf = document.getElementById('btn-print-pdf');
-        
-        if (typeof html2canvas !== 'undefined' && typeof jsPDF !== 'undefined') {
-          console.log('PDF libraries loaded successfully');
-          btnPrintPdf.title = 'Cetak PDF struk pembayaran';
-          return true;
-        } else {
-          console.warn('PDF libraries not loaded yet');
-          btnPrintPdf.title = 'Library PDF belum dimuat. Refresh halaman jika ada masalah.';
-          return false;
-        }
-      }
-
-      // Wait for libraries to load
-      function waitForPdfLibraries(callback, maxAttempts = 20) {
-        if (checkPdfLibraries()) {
-          callback();
-          return;
-        }
-        
-        let attempts = 0;
-        const interval = setInterval(() => {
-          attempts++;
-          if (checkPdfLibraries()) {
-            clearInterval(interval);
-            callback();
-          } else if (attempts >= maxAttempts) {
-            clearInterval(interval);
-            alert('Gagal memuat library PDF. Pastikan koneksi internet stabil dan coba refresh halaman.');
-          }
-        }, 500);
-      }
-
-      // Event listeners
-      document.getElementById('btn-print-pdf').addEventListener('click', () => {
-        waitForPdfLibraries(generatePDF);
-      });
+      document.getElementById('btn-print-html').addEventListener('click', generateHTMLReceipt);
       document.getElementById('btn-whatsapp').addEventListener('click', sendToWhatsApp);
 
       document.getElementById('orders-body').addEventListener('change', (event) => {
@@ -1996,18 +2515,26 @@
         const orderId = event.target.getAttribute('data-order-id');
         const order = orders.find((item) => item.id === orderId);
         if (!order) return;
-        order.status = event.target.value;
+        const newStatus = event.target.value;
+        const oldStatus = order.status;
+        order.status = newStatus;
         saveOrdersToStorage(orders);
         renderDashboardMetrics();
+        
+        // SFX: Ding saat pesanan selesai
+        if (newStatus === 'selesai' && oldStatus !== 'selesai') {
+          playDingSound();
+          showToast(`Pesanan #${orderId.slice(0, 8)} selesai!`, 'success');
+        } else {
+          showToast(`Status pesanan diubah ke: ${newStatus}`, 'info');
+        }
       });
 
-      // Initialize
       document.getElementById('year').textContent = new Date().getFullYear();
       renderMenuColumns();
       renderCart();
       renderOrdersTable();
       renderDashboardMetrics();
-      checkPdfLibraries();
     </script>
   </body>
 </html>
